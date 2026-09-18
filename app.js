@@ -2,7 +2,7 @@ let bad=[],good=[],reasons=[];
 const $=s=>document.querySelector(s);
 const REASONS={"装備集め・ハクスラ":{loot:-1,build:-.8},"移動が多い":{travel_burden:-1,open_world:-.25},"戦闘が単調":{combat:.25,reaction:1,speed:1},"難しすぎる":{difficulty:-1},"ストーリーが弱い":{story:1},"キャラにハマれない":{characters:1},"探索が面倒":{exploration:-.8,travel_burden:-1},"育成・ビルドが合わない":{build:-1,rpg:-.7},"操作感・テンポが合わない":{speed:1,reaction:1},"自由度が低い":{linear:-1,open_world:1}};
 const AXIS_WEIGHTS={combat:1.3,parry:1.35,reaction:1.35,story:1.1,characters:1,exploration:.9,open_world:.8,rpg:.7,build:.8,loot:.7,roguelike:.8,speed:1.15,spectacle:.9,linear:.7,travel_burden:1,difficulty:.85};
-const realGames=()=>GAMES.filter(g=>!/^ゲーム候補\s*\d+$/.test(g.title));
+const realGames=()=>GAMES.filter(g=>!/^ゲーム候補\s*\d+$/.test(g.title)&&g.title!=="Stellar Blade");
 const gameById=id=>GAMES.find(g=>g.id===id);
 function start(){$("#home").classList.add("hide");$("#quiz").classList.remove("hide");renderBad();renderWhy();renderGood();updateCounts()}
 function go(n){if(n===2&&!bad.length){alert("まず「つまらなかったゲーム」を1本以上選んでください。");return}document.querySelectorAll(".page").forEach(x=>x.classList.add("hide"));$("#p"+n).classList.remove("hide");$("#bar").style.width=n/3*100+"%";scrollTo({top:0,behavior:"smooth"})}

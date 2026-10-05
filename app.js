@@ -2,15 +2,64 @@ let bad=[],good=[],reasons=[];
 const $=s=>document.querySelector(s);
 const REASONS={"装備集め・ハクスラ":{loot:-1,build:-.8},"移動が多い":{travel_burden:-1,open_world:-.25},"戦闘が単調":{combat:.25,reaction:1,speed:1},"難しすぎる":{difficulty:-1},"ストーリーが弱い":{story:1},"キャラにハマれない":{characters:1},"探索が面倒":{exploration:-.8,travel_burden:-1},"育成・ビルドが合わない":{build:-1,rpg:-.7},"操作感・テンポが合わない":{speed:1,reaction:1},"自由度が低い":{linear:-1,open_world:1}};
 const AXIS_WEIGHTS={combat:1.3,parry:1.35,reaction:1.35,story:1.1,characters:1,exploration:.9,open_world:.8,rpg:.7,build:.8,loot:.7,roguelike:.8,speed:1.15,spectacle:.9,linear:.7,travel_burden:1,difficulty:.85};
-const realGames=()=>GAMES.filter(g=>!/^ゲーム候補\s*\d+$/.test(g.title)&&g.title!=="Stellar Blade");
+const realGames=()=>GAMES.filter(g=>!/^ゲーム候補\s*\d+$/.test(g.title));
 const gameById=id=>GAMES.find(g=>g.id===id);
 function start(){$("#home").classList.add("hide");$("#quiz").classList.remove("hide");renderBad();renderWhy();renderGood();updateCounts()}
 function go(n){if(n===2&&!bad.length){alert("まず「つまらなかったゲーム」を1本以上選んでください。");return}document.querySelectorAll(".page").forEach(x=>x.classList.add("hide"));$("#p"+n).classList.remove("hide");$("#bar").style.width=n/3*100+"%";scrollTo({top:0,behavior:"smooth"})}
-function list(q,sel,setter,id,type){const box=$(id);box.innerHTML="";const query=(q||"").trim().toLowerCase();if(!query){box.innerHTML='<div class="hint">ゲーム名を入力して検索してください</div>';return}const source=realGames().filter(g=>g.title.toLowerCase().includes(query));source.slice(0,40).forEach(g=>{const b=document.createElement("button"),other=type==="bad"&&good.includes(g.id)||type==="good"&&bad.includes(g.id);b.className="game"+(sel.includes(g.id)?" on":"")+(other?" disabled":"");b.innerHTML=`<span>${g.title}</span>${sel.includes(g.id)?"<b>✓</b>":""}`;b.disabled=other;b.onclick=()=>{if(sel.includes(g.id))setter(sel.filter(x=>x!==g.id));else if(sel.length<5)setter([...sel,g.id]);else alert("最大5本まで選べます。");renderBad();renderGood();updateCounts()};box.appendChild(b)});if(!source.length)box.innerHTML='<div class="hint">見つかりませんでした。別の名前で検索してみてください。</div>'}
+/* 描画はここだけで行い、検索結果は searchGames() に統一する。 */
+function list(q, sel, setter, id, type, limit = 40) {
+  const box = $(id);
+  box.innerHTML = "";
+  if (!normJP(q)) {
+    box.innerHTML = '<div class="hint">ゲーム名を入力して検索してください（日本語・英語・略称OK）</div>';
+    return;
+  }
+  const source = searchGames(q, realGames());
+  source.slice(0, limit).forEach(g => {
+    const b = document.createElement("button");
+    const other = type === "bad" && good.includes(g.id) || type === "good" && bad.includes(g.id);
+    b.className = "game" + (sel.includes(g.id) ? " on" : "") + (other ? " disabled" : "");
+    b.dataset.gameId = String(g.id);
+    const label = document.createElement("span");
+    const displayName = jpDisplayName(g);
+    label.textContent = displayName;
+    if (displayName !== g.title) {
+      const english = document.createElement("small");
+      english.className = "alias-en";
+      english.textContent = g.title;
+      label.appendChild(english);
+    }
+    b.appendChild(label);
+    if (sel.includes(g.id)) {
+      const check = document.createElement("b");
+      check.textContent = "✓";
+      b.appendChild(check);
+    }
+    b.disabled = other;
+    b.onclick = () => {
+      if (sel.includes(g.id)) setter(sel.filter(x => x !== g.id));
+      else if (sel.length < 5) setter([...sel, g.id]);
+      else alert("最大5本まで選べます。");
+      renderBad();
+      renderGood();
+      updateCounts();
+    };
+    box.appendChild(b);
+  });
+  if (!source.length) {
+    box.innerHTML = '<div class="hint">見つかりませんでした。日本語名・英語名・略称を変えて試してください。</div>';
+  } else if (source.length > limit) {
+    const more = document.createElement("button");
+    more.className = "secondary search-more";
+    more.textContent = "ほか " + (source.length - limit) + " 件を表示";
+    more.onclick = () => list(q, sel, setter, id, type, limit + 40);
+    box.appendChild(more);
+  }
+}
 function renderBad(){list($("#badSearch").value,bad,x=>bad=x,"#bad","bad");$("#badSel").innerHTML=bad.map(i=>`<span class="pill">${gameById(i).title}<button onclick="removeBad(${i})">×</button></span>`).join("")}
 function renderGood(){list($("#goodSearch").value,good,x=>good=x,"#good","good");$("#goodSel").innerHTML=good.map(i=>`<span class="pill">${gameById(i).title}<button onclick="removeGood(${i})">×</button></span>`).join("")}
-function removeBad(id){bad=bad.filter(x=>x!==id);renderBad();updateCounts()}
-function removeGood(id){good=good.filter(x=>x!==id);renderGood();updateCounts()}
+function removeBad(id){bad=bad.filter(x=>x!==id);renderBad();renderGood();updateCounts()}
+function removeGood(id){good=good.filter(x=>x!==id);renderBad();renderGood();updateCounts()}
 function renderWhy(){const box=$("#reasons");box.innerHTML=Object.keys(REASONS).map(r=>`<button class="reason ${reasons.includes(r)?"on":""}" data-reason="${r}">${r}</button>`).join("");box.querySelectorAll(".reason").forEach(b=>b.onclick=()=>{const r=b.dataset.reason;reasons=reasons.includes(r)?reasons.filter(x=>x!==r):[...reasons,r];b.classList.toggle("on",reasons.includes(r));updateCounts()})}
 function updateCounts(){["bad","good"].forEach(t=>$("#"+t+"Count").textContent=`${t==="bad"?bad.length:good.length}/5`);$("#reasonCount").textContent=`${reasons.length}個`}
 function distance(a,b){let s=0,w=0;for(const k of AXES){const z=AXIS_WEIGHTS[k]||1;s+=z*Math.abs((a[k]??.5)-(b[k]??.5));w+=z}return s/w}

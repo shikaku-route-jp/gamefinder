@@ -47,7 +47,17 @@
   <span class="ad-label">広告</span>
   <div class="ad-creative">
 <!-- admax -->
-<script src="https://adm.shinobi.jp/s/b675b17c918aba329b4882d182037eb6"></script>
+<script id="gamefinder-ad-loader">
+(function () {
+  // iPad・Androidタブレット・PCにはPC用の枠を使う。
+  // HTML解析中に片方だけ読み込み、AdMaxの通常のタグ実行を保つ。
+  const isPhone = /iPhone|iPod|Android.*Mobile|Windows Phone/i.test(navigator.userAgent);
+  const adId = isPhone
+    ? "b675b17c918aba329b4882d182037eb6"
+    : "167c66f0af4fa0bed42a9fb4b0b2bdb0";
+  document.write('<script src="https://adm.shinobi.jp/s/' + adId + '"></' + 'script>');
+})();
+</script>
 <!-- admax -->
   </div>
 </aside>

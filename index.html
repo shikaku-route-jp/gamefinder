@@ -41,6 +41,17 @@
     border-radius: 0;
   }
 }
+/* 広告要素が生成されなかった場合は、ラベルと余白を残さない。
+   iframeが生成された場合は配信中の可能性があるため折りたたまない。 */
+#gamefinder-ad:not(:has(.ad-creative :not(script):not(style))) {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: 0;
+}
+#gamefinder-ad:not(:has(.ad-creative :not(script):not(style))) .ad-label {
+  display: none;
+}
 </style>
 </head><body><header><a href="./" class="brand">GAMEFINDER</a><small>β6 / 1000 TITLES</small></header><main><section id="home"><div class="eyebrow">DISLIKE → DISCOVER</div><h1>「つまらなかった」から<br><strong>次にハマるゲーム。</strong></h1><p class="lead">好きなゲームを並べるだけでは分からない「地雷」を、苦手だったゲームから逆算します。</p><button class="cta start-cta" onclick="start()">診断をはじめる <span aria-hidden="true">→</span></button><p class="micro">所要時間：約1分　ゲームは最大5本ずつ選択</p><div class="feature-row"><span>1000 TITLES</span><span>人気作中心</span><span>地雷回避</span><span>相性分析</span></div><div class="preview"><div class="preview-label">診断結果のイメージ</div><div class="preview-flow"><b>仁王</b><span>＋</span><b>Hollow Knight</b><span>＋</span><b>「移動が多い」</b><span>→</span><strong>次にハマるゲームをランキング</strong></div><p>「好き」だけでなく「何が合わなかったか」まで分析して、候補をランキング化します。</p></div><div class="how"><h2>どうやって診断する？</h2><div class="how-grid"><div><b>01　地雷を入力</b><p>つまらなかったゲームを最大5本選択。</p></div><div><b>02　理由を指定</b><p>戦闘・テンポ・難易度・探索など、合わなかった理由を選択。</p></div><div><b>03　好みを補強</b><p>好きだったゲームを入れると、相性分析の精度を補強します。</p></div></div><p class="method">診断では、ゲームごとの特徴を軸に「好きな作品との近さ」「苦手だった作品との距離」「選んだ理由への適合」を組み合わせて順位を出します。作品の優劣ではなく、あなたとの相性を見ています。</p></div><div class="sample"><div class="preview-label">サンプル診断</div><p><b>苦手：</b>仁王　／　<b>理由：</b>装備集め・ハクスラ、移動が多い</p><p><b>好き：</b>SEKIRO</p><div class="sample-result"><span>#1</span><strong>あなたに合いそうなゲーム</strong><em>※これは表示例です</em></div></div><button class="cta start-cta start-cta-bottom" onclick="start()">診断をはじめる <span aria-hidden="true">→</span></button><div class="db-note"><b>1000タイトル収録</b><br>Switch・PS・Xbox・PCなどの人気作を中心に、シリーズ・ジャンルを横断して診断候補に収録しています。</div></section><section id="quiz" class="hide"><div class="progress-wrap"><div class="progress"><i id="bar"></i></div><span id="stepLabel">STEP 1 / 3</span></div><div class="page" id="p1"><small>STEP 1 / 3</small><h2>つまらなかったゲーム</h2><p>「なぜか合わなかった」ゲームを1〜5本。ここが診断の軸になります。</p><div class="count"><b id="badCount">0/5</b> 選択中</div><input id="badSearch" oninput="renderBad()" placeholder="ゲーム名を入力（日本語・英語・略称OK）" autocomplete="off"><div class="search-help">例：仁王 / ダクソ3 / モンハンワイルズ / FF7 / ゼルダ</div><div id="bad"></div><div id="badSel" class="selected"></div><button onclick="go(2)">次へ →</button></div><div class="page hide" id="p2"><small>STEP 2 / 3</small><h2>何が嫌だった？</h2><p>「テンポ」「戦闘」「難易度」など、具体的な理由を選ぶほど地雷回避に反映されます。</p><div class="count"><b id="reasonCount">0個</b> 選択中</div><div id="reasons" class="chips"></div><div class="nav"><button class="secondary" onclick="go(1)">← 戻る</button><button onclick="go(3)">次へ →</button></div></div><div class="page hide" id="p3"><small>STEP 3 / 3</small><h2>好きだったゲーム</h2><p>「これは面白かった」を0〜5本。なくても診断できます。</p><div class="count"><b id="goodCount">0/5</b> 選択中</div><input id="goodSearch" oninput="renderGood()" placeholder="ゲーム名を入力（日本語・英語・略称OK）" autocomplete="off"><div class="search-help">例：隻狼 / ブレワイ / エルデンリング / FF7リバース / リリンク</div><div id="good"></div><div id="goodSel" class="selected"></div><div class="nav"><button class="secondary" onclick="go(2)">← 戻る</button><button class="cta" onclick="diagnose()">診断する <span>→</span></button></div></div><div id="result" class="hide"></div></section>
 <aside id="gamefinder-ad" class="ad-slot" aria-label="広告">

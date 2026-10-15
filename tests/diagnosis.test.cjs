@@ -69,6 +69,19 @@ function createApp(search = "", navigator = {}) {
   return { get, run, data, context, alerts, opened, result: () => get("#result").innerHTML };
 }
 
+test("configured product cards preserve ranking, selected answers, and exact provider HTML", () => {
+  const app = createApp();
+  app.run('const showWithoutCapture=showResult; globalThis.rankings=[]; showResult=items=>{rankings.push(items.map(x=>x.g.id));showWithoutCapture(items)}; bad=[122];good=[116];reasons=["移動が多い"];diagnose()');
+  const before = app.data('({answers:{bad,good,reasons},ids:rankings[0]})');
+  app.context.productFixture = '<a href="https://hb.afl.rakuten.co.jp/hgc/test-only/"><img src="https://thumbnail.image.rakuten.co.jp/test-only.jpg" width="128" height="128" alt="fixture"></a>';
+  app.run('GAME_PRODUCT_LINKS[gameById(rankings[0][0]).title]={provider:"rakuten",mediaUrl:GAME_PRODUCT_MEDIA_URL,html:productFixture};diagnose()');
+  assert.deepEqual(app.data('rankings[1]'),before.ids);
+  assert.deepEqual(app.data('({bad,good,reasons})'),before.answers);
+  assert.equal(app.result().split(app.context.productFixture).length-1,1);
+  assert.ok(app.result().includes('広告 / PR'));
+  assert.equal(typeof app.get('#shareResultButton').onclick,'function');
+});
+
 test("shared diagnosis loads with Japanese titles on the first page load", () => {
   const params = new URLSearchParams({ bad: "122", good: "116", reason: "移動が多い" });
   const app = createApp("?" + params);

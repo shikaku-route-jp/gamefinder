@@ -1,4 +1,4 @@
-/* GAMEFINDER 日本語検索。キーは games800.js の title と完全一致させる。 */
+/* GAMEFINDER 日本語検索。キーは games1000.js の title と完全一致させる。 */
 const JP_ALIASES = {
   "Elden Ring": ["エルデンリング","エルデン","elden"],
   "Elden Ring Nightreign": ["エルデンリング ナイトレイン","ナイトレイン","nightreign"],

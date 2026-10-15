@@ -36,3 +36,4 @@ function profile(i,title){
  return p;
 }
 const GAMES=uniq.slice(0,1000).map((title,i)=>({id:i+1,title,profile:profile(i,title)}));
+if (GAMES.length !== 1000) throw new Error("GAMEFINDER: expected 1000 titles");

@@ -60,7 +60,7 @@ function createApp() {
 }
 
 test("index loads data and shared search before app; list has one implementation", () => {
-  assert.deepEqual(scripts, ["games1000.js", "jp-search.js", "app.js"]);
+  assert.deepEqual(scripts, ["games1000.js", "jp-search.js", "product-links.js", "app.js"]);
   const code = scripts.map(script => fs.readFileSync(path.join(root, script), "utf8")).join("\n");
   assert.equal([...code.matchAll(/function list\s*\(/g)].length, 1);
 });

@@ -278,6 +278,7 @@ function showResult(ranked) {
   $("#stepLabel").textContent = "診断結果";
   const infoLevel = bad.length + good.length + reasons.length >= 7 ? "充実" : bad.length + good.length + reasons.length >= 4 ? "標準" : "少なめ";
   const names = ids => ids.map(id => jpDisplayName(gameById(id))).join("、") || "入力なし";
+  const usedProductCodes = new Set();
   $("#result").innerHTML = `
     <div class="result-head"><small>YOUR RESULT</small><h2 tabindex="-1">次に試してみたいゲーム</h2>
       <p class="confidence">入力情報の充実度 <b>${infoLevel}</b>　苦手 ${bad.length}本・好き ${good.length}本・理由 ${reasons.length}個</p>
@@ -293,7 +294,7 @@ function showResult(ranked) {
     </div>
     <h2 class="section-title">おすすめTOP${ranked.length}</h2>
     ${ranked.map((x, i) => `<article class="card result-card"><div class="rank-mini">0${i + 1}</div><div>
-      ${resultName(x.g, "h3")}<p>あなたに合いそうな理由：<b>${escapeHtml(explain(x.g))}</b></p>
+      ${resultName(x.g, "h3")}${gameProductMarkup(x.g, usedProductCodes)}<p>あなたに合いそうな理由：<b>${escapeHtml(explain(x.g))}</b></p>
       ${resultWarnings(x.g).length ? `<p class="result-caution">気になる点：${escapeHtml(resultWarnings(x.g).join("・"))}</p>` : ""}
       <div class="bars">${resultTags(x)}</div>
     </div></article>`).join("")}

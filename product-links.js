@@ -29,4 +29,3 @@ function gameProductMarkup(game, usedCodes) {
   return '<aside class="game-product" aria-label="購入リンク"><p class="product-ad-label">広告 / PR</p>'
     + entry.html + '</aside>';
 }
-

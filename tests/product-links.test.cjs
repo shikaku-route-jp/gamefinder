@@ -57,20 +57,10 @@ test("rejects clear configuration mistakes rather than executing arbitrary suppl
   }
 });
 
-test("keeps the official Moshimo initializer and placeholder intact", () => {
-  const app = setup();
-  app.context.cardHtml = '<script>/* fixture only: MoshimoAffiliateObject dn.msmstatic.com/site/cardlink/ msmaflink */</script><div id="msmaflink-fixture"></div>';
-  app.run('GAME_PRODUCT_LINKS.fixture={provider:"moshimo",mediaUrl:GAME_PRODUCT_MEDIA_URL,html:cardHtml}');
-  assert.ok(app.run("gameProductMarkup(game,codes)").includes(app.context.cardHtml));
-});
-
-test("activates card scripts after preserving their attributes and exact text", () => {
-  const replacements = [];
-  const original = { attributes:[{name:"type",value:"text/javascript"}],textContent:"/* official initializer fixture */",hasAttribute:()=>false,replaceWith:script=>replacements.push(script) };
-  const context = vm.createContext({ document:{ querySelectorAll:selector=>selector===".game-product script"?[original]:[],createElement:()=>({attrs:{},setAttribute(name,value){this.attrs[name]=value;}}) } });
-  vm.runInContext(source,context);
-  vm.runInContext("activateGameProductScripts()",context);
-  assert.equal(replacements.length,1);
-  assert.equal(replacements[0].attrs.type,"text/javascript");
-  assert.equal(replacements[0].textContent,original.textContent);
+test("Moshimo and other providers are excluded from GAMEFINDER", () => {
+  for (const provider of ["moshimo", "unknown"]) {
+    const app = setup(); app.register(); app.context.provider = provider;
+    app.run("GAME_PRODUCT_LINKS.fixture.provider=provider");
+    assert.equal(app.run("gameProductMarkup(game,codes)"), "");
+  }
 });

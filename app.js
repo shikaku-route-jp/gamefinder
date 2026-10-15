@@ -303,7 +303,6 @@ function showResult(ranked) {
       <div class="answer-row"><div><b>合わなかった理由</b><p>${escapeHtml(reasons.join("、") || "選択なし")}</p></div><button class="secondary" id="editReasons">変更</button></div>
       <div class="answer-row"><div><b>好きだったゲーム</b><p>${escapeHtml(names(good))}</p></div><button class="secondary" id="editGood">変更</button></div>
     </section>`;
-  activateGameProductScripts();
   $("#shareResultButton").onclick = () => shareResult(jpDisplayName(top.g));
   $("#shareXButton").onclick = () => shareX(jpDisplayName(top.g));
   $("#editBad").onclick = () => editAnswers(1);

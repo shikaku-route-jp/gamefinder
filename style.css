@@ -44,3 +44,6 @@ h2[tabindex="-1"]:focus{outline:none}
   .answer-row{padding:14px}
 }
 
+
+.game-product{margin:14px 0;max-width:100%;overflow-x:auto}
+.game-product .product-ad-label{font-size:11px;color:#66718a;margin:0 0 8px;letter-spacing:.03em}

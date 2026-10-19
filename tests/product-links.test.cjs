@@ -64,3 +64,67 @@ test("Moshimo and other providers are excluded from GAMEFINDER", () => {
     assert.equal(app.run("gameProductMarkup(game,codes)"), "");
   }
 });
+
+test("checks every actual link destination instead of finding a Rakuten substring", () => {
+  for (const href of [
+    "https://example.invalid/?ref=https://hb.afl.rakuten.co.jp/",
+    "https://hb.afl.rakuten.co.jp.example.invalid/",
+    "https://hb.afl.rakuten.co.jp@example.invalid/",
+    "http://hb.afl.rakuten.co.jp/hgc/test-only/",
+    "//hb.afl.rakuten.co.jp/hgc/test-only/",
+    "https://hb.afl.rakuten.co.jp\\@example.invalid/",
+  ]) {
+    const app = setup(); app.register();
+    app.context.badHtml = html.replace("https://hb.afl.rakuten.co.jp/hgc/test-only/", href);
+    app.run("GAME_PRODUCT_LINKS.fixture.html=badHtml");
+    assert.equal(app.run("gameProductMarkup(game,codes)"), "", href);
+  }
+});
+
+test("rejects mixed providers and external image sources even beside valid Rakuten HTML", () => {
+  for (const extra of [
+    '<a href="https://af.moshimo.com/af/c/click?test-only"><img src="https://thumbnail.image.rakuten.co.jp/test-only.jpg"></a>',
+    '<img src="https://i.moshimo.com/af/i/impression?test-only">',
+    '<img src="https://example.invalid/image.jpg">',
+    '<img src="https://thumbnail.image.rakuten.co.jp.example.invalid/image.jpg">',
+  ]) {
+    const app = setup(); app.register(); app.context.badHtml = html + extra;
+    app.run("GAME_PRODUCT_LINKS.fixture.html=badHtml");
+    assert.equal(app.run("gameProductMarkup(game,codes)"), "");
+  }
+});
+
+test("preserves static table markup, encoded query separators, and tracking images", () => {
+  const app = setup(); app.register();
+  const card = '<table border="0" cellpadding="0" cellspacing="0"><tbody><tr><td><a href="https://hbb.afl.rakuten.co.jp/hgc/test-only/?pc=test&amp;link_type=hybrid" target="_blank" rel="nofollow" style="word-wrap:break-word;"><img src="https://thumbnail.image.rakuten.co.jp/test-only.jpg" width="128" height="128" border="0" alt="test &amp; test" /></a><br /><span style="color:#333;">商品名</span></td></tr></tbody></table><img src="https://hbb.afl.rakuten.co.jp/b/test-only/" width="1" height="1" alt="">';
+  app.context.card = card;
+  app.run("GAME_PRODUCT_LINKS.fixture.html=card");
+  const result = app.run("gameProductMarkup(game,codes)");
+  assert.ok(result.includes(card));
+  assert.ok(result.includes("楽天市場"));
+});
+
+test("rejects ambiguous attributes, active markup, and unsupported styles without modifying them", () => {
+  for (const badHtml of [
+    html.replace('<a href=', '<a onclick="alert(1)" href='),
+    html.replace('<img src=', '<img srcset="https://example.invalid/a.jpg 2x" src='),
+    html.replace('<a href=', '<a href="https://example.invalid/" href='),
+    html + '<svg><a href="https://example.invalid/">test</a></svg>',
+    html.replace('<img src=', '<img style="background:url(https://example.invalid/)" src='),
+    html.replace('<img src=', '<img style="background:u&#114;l(https://example.invalid/)" src='),
+    html + '</aside><p>outside card</p>',
+  ]) {
+    const app = setup(); app.register(); app.context.badHtml = badHtml;
+    app.run("GAME_PRODUCT_LINKS.fixture.html=badHtml");
+    assert.equal(app.run("gameProductMarkup(game,codes)"), "");
+    assert.equal(app.run("GAME_PRODUCT_LINKS.fixture.html"), badHtml);
+  }
+});
+
+test("an unlinked image or a link without an image is not an image purchase card", () => {
+  const app = setup(); app.register();
+  app.context.badHtml = '<img src="https://thumbnail.image.rakuten.co.jp/test-only.jpg"><a href="https://hb.afl.rakuten.co.jp/hgc/test-only/">商品名</a>';
+  app.run("GAME_PRODUCT_LINKS.fixture.html=badHtml");
+  assert.equal(app.run("gameProductMarkup(game,codes)"), "");
+});
+

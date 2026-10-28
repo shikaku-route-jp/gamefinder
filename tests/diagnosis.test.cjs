@@ -58,7 +58,7 @@ function createApp(search = "", navigator = {}) {
   const initial = new Element(); initial.innerHTML = html;
   for (const n of [1, 2, 3]) get("#p" + n).id = "p" + n;
   const context = vm.createContext({
-    document, navigator, URLSearchParams,
+    document, navigator, URL, URLSearchParams,
     location: { search, origin: "https://example.test", pathname: "/gamefinder/" },
     scrollTo() {}, alert: message => alerts.push(message),
     window: { open: (...args) => opened.push(args) },
@@ -66,7 +66,7 @@ function createApp(search = "", navigator = {}) {
   for (const script of scripts) vm.runInContext(fs.readFileSync(path.join(root, script), "utf8"), context, { filename: script });
   const run = source => vm.runInContext(source, context);
   const data = source => JSON.parse(run("JSON.stringify(" + source + ")"));
-  return { get, run, data, context, alerts, opened, result: () => get("#result").innerHTML };
+  return { get, run, data, context, alerts, opened, result: () => get("#result").innerHTML + get("#result-details").innerHTML };
 }
 
 test("shared diagnosis loads with Japanese titles on the first page load", () => {
@@ -195,4 +195,41 @@ test("shared URL parsing ignores malformed reasons and preserves valid unique ch
   const restored = createApp(legacy.search);
   assert.deepEqual(restored.data("({bad,good,reasons})"), app.data("({bad,good,reasons})"));
   assert.equal(restored.result(), app.result());
+});
+
+test("results provide search links for five distinct recommendations without pretending they earn commissions", () => {
+  const app = createApp("?bad=122");
+  const hero = app.get("#result").innerHTML;
+  const rest = app.get("#result-details").innerHTML;
+  assert.equal((hero.match(/class="shop-actions"/g) || []).length, 1);
+  assert.equal((rest.match(/class="shop-actions"/g) || []).length, 4);
+  assert.equal((rest.match(/class="rank-mini"/g) || []).length, 4);
+  assert.ok(hero.includes("Amazonで検索"));
+  assert.ok(hero.includes("楽天市場で検索"));
+  assert.ok(hero.includes("Steamで検索"));
+  assert.ok(!app.result().includes("sponsored"));
+  assert.equal(app.run("affiliateDisclosure()"), "");
+});
+
+test("approved affiliate links get disclosure and unsafe URLs fall back to ordinary search", () => {
+  const app = createApp("?bad=122");
+  const output = app.run(`shopLinks(gameById(122), true, {
+    Nioh: { amazon: "https://partner.example/product?x=1&y=2", rakuten: "javascript:alert(1)" }
+  })`);
+  assert.ok(output.includes("https://partner.example/product?x=1&amp;y=2"));
+  assert.ok(output.includes('rel="noopener noreferrer sponsored"'));
+  assert.ok(output.includes("広告を含む"));
+  assert.ok(output.includes("楽天市場で検索"));
+  assert.ok(!output.includes("javascript:"));
+  assert.ok(app.run('affiliateDisclosure({ Nioh: { amazon: "https://partner.example/item" } })').includes("Amazonのアソシエイト"));
+  assert.equal(app.run('affiliateDisclosure({ Nioh: { amazon: "http://partner.example/item" } })'), "");
+  assert.equal(app.run('validAffiliateUrl("https://user:password@partner.example/")'), "");
+});
+
+test("the single original ad slot separates the top result from the other results", () => {
+  const result = html.indexOf('<div id="result"');
+  const ad = html.indexOf('<aside id="gamefinder-ad"');
+  const details = html.indexOf('<div id="result-details"');
+  assert.ok(result >= 0 && result < ad && ad < details);
+  assert.equal((html.match(/id="gamefinder-ad-loader"/g) || []).length, 1);
 });

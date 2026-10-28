@@ -2,6 +2,14 @@ let bad=[],good=[],reasons=[];
 const $=s=>document.querySelector(s);
 const REASONS={"装備集め・ハクスラ":{loot:-1,build:-.8},"移動が多い":{travel_burden:-1,open_world:-.25},"戦闘が単調":{combat:.25,reaction:1,speed:1},"難しすぎる":{difficulty:-1},"ストーリーが弱い":{story:1},"キャラにハマれない":{characters:1},"探索が面倒":{exploration:-.8,travel_burden:-1},"育成・ビルドが合わない":{build:-1,rpg:-.7},"操作感・テンポが合わない":{speed:1,reaction:1},"自由度が低い":{linear:-1,open_world:1}};
 const AXIS_WEIGHTS={combat:1.3,parry:1.35,reaction:1.35,story:1.1,characters:1,exploration:.9,open_world:.8,rpg:.7,build:.8,loot:.7,roguelike:.8,speed:1.15,spectacle:.9,linear:.7,travel_burden:1,difficulty:.85};
+// 提携後に発行された商品リンクだけを登録する。空なら通常の検索リンクを表示する。
+// キーは英語の作品名、値は { amazon: "https://...", rakuten: "https://..." }。
+const AFFILIATE_LINKS = Object.freeze({});
+const POPULAR_TITLES = [
+  "Elden Ring", "Monster Hunter Wilds", "The Legend of Zelda: Breath of the Wild",
+  "Nioh", "Sekiro: Shadows Die Twice", "Dark Souls III", "Hollow Knight",
+  "Final Fantasy VII Rebirth", "Dragon Quest XI S", "Persona 5 Royal", "Minecraft", "Stardew Valley",
+];
 const realGames=()=>GAMES.filter(g=>!/^ゲーム候補\s*\d+$/.test(g.title));
 const catalogCount = realGames().length;
 document.querySelectorAll("[data-game-count]").forEach(node => {
@@ -30,6 +38,7 @@ function start() {
   renderGood();
   updateCounts();
   scrollTo({top:0,behavior:"smooth"});
+  $("#p1").querySelector("h2")?.focus({ preventScroll: true });
 }
 function go(n) {
   if (![1, 2, 3].includes(n)) return;
@@ -60,11 +69,17 @@ function editAnswers(n) {
 function list(q, sel, setter, id, type, limit = 40) {
   const box = $(id);
   box.innerHTML = "";
-  if (!normJP(q)) {
-    box.innerHTML = '<div class="hint">ゲーム名を入力して検索してください（日本語・英語・略称OK）</div>';
-    return;
+  const isBrowsing = !normJP(q);
+  const catalog = realGames();
+  const source = isBrowsing
+    ? POPULAR_TITLES.map(title => catalog.find(g => g.title === title)).filter(Boolean)
+    : searchGames(q, catalog);
+  if (isBrowsing) {
+    const hint = document.createElement("div");
+    hint.className = "browse-hint";
+    hint.textContent = "よく知られた作品から選ぶ、またはゲーム名を入力して検索";
+    box.appendChild(hint);
   }
-  const source = searchGames(q, realGames());
   source.slice(0, limit).forEach(g => {
     const b = document.createElement("button");
     const other = type === "bad" && good.includes(g.id) || type === "good" && bad.includes(g.id);
@@ -254,6 +269,45 @@ function injectAd() {
 }
 const escapeHtml = value => String(value).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 
+function validAffiliateUrl(value) {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && !url.username && !url.password ? url.href : "";
+  } catch { return ""; }
+}
+
+function affiliateDisclosure(config = AFFILIATE_LINKS) {
+  const entries = Object.values(config);
+  const any = entries.some(links => ["amazon", "rakuten", "steam"].some(key => validAffiliateUrl(links?.[key])));
+  if (!any) return "";
+  const amazon = entries.some(links => validAffiliateUrl(links?.amazon));
+  return "当サイトにはアフィリエイト広告が含まれます。広告リンクからの購入で紹介料を受け取る場合があります。" +
+    (amazon ? " Amazonのアソシエイトとして、GAMEFINDERは適格販売により収入を得ています。" : "");
+}
+
+function shopLinks(game, compact = false, affiliateLinks = AFFILIATE_LINKS) {
+  const title = jpDisplayName(game);
+  const configured = Object.hasOwn(affiliateLinks, game.title) ? affiliateLinks[game.title] : {};
+  const shops = [
+    { key: "amazon", name: "Amazon", url: "https://www.amazon.co.jp/s?" + new URLSearchParams({ k: title }) },
+    { key: "rakuten", name: "楽天市場", url: "https://search.rakuten.co.jp/search/mall/" + encodeURIComponent(title) + "/" },
+    { key: "steam", name: "Steam", url: "https://store.steampowered.com/search/?" + new URLSearchParams({ term: game.title }) },
+  ];
+  const links = shops.map(shop => {
+    const sponsored = validAffiliateUrl(configured?.[shop.key]);
+    const url = sponsored || shop.url;
+    const label = shop.name + (sponsored ? "で見る" : "で検索");
+    return `<a class="shop-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer${sponsored ? " sponsored" : ""}">${escapeHtml(label)}${sponsored ? '<span class="shop-ad-label">広告</span>' : ""}<span aria-hidden="true"> ↗</span><span class="visually-hidden">（新しいタブで開きます）</span></a>`;
+  }).join("");
+  const hasSponsored = shops.some(shop => validAffiliateUrl(configured?.[shop.key]));
+  const description = `${hasSponsored ? "広告リンクからの購入で紹介料を受け取る場合があります。" : ""}検索先に作品がない場合もあります。機種・版・価格は販売先でご確認ください。`;
+  const body = `<p>${escapeHtml(description)}</p><div class="shop-actions">${links}</div>`;
+  return compact
+    ? `<details class="shop-panel shop-panel-compact"><summary>この作品を探す${hasSponsored ? ' <span class="shop-ad-label">広告を含む</span>' : ""}</summary>${body}</details>`
+    : `<div class="shop-panel"><h3>この作品を探す${hasSponsored ? ' <span class="shop-ad-label">広告を含む</span>' : ""}</h3>${body}</div>`;
+}
+
 function resultTags(item) {
   const tags = [];
   if (good.length) tags.push("好きとの近さ " + Math.round(item.goodSim * 100) + "点");
@@ -278,24 +332,30 @@ function showResult(ranked) {
   $("#stepLabel").textContent = "診断結果";
   const infoLevel = bad.length + good.length + reasons.length >= 7 ? "充実" : bad.length + good.length + reasons.length >= 4 ? "標準" : "少なめ";
   const names = ids => ids.map(id => jpDisplayName(gameById(id))).join("、") || "入力なし";
+  const disclosure = affiliateDisclosure();
   $("#result").innerHTML = `
     <div class="result-head"><small>YOUR RESULT</small><h2 tabindex="-1">次に試してみたいゲーム</h2>
       <p class="confidence">入力情報の充実度 <b>${infoLevel}</b>　苦手 ${bad.length}本・好き ${good.length}本・理由 ${reasons.length}個</p>
+      ${disclosure ? `<p class="affiliate-notice">${escapeHtml(disclosure)}</p>` : ""}
+      <p class="result-explainer">スコアは特徴データに基づく目安です。シリーズ単位の推定も含むため、購入前に内容や対応機種をご確認ください。</p>
     </div>
     <div class="hero-result">
       <div class="rank">#1</div><div class="score">${Math.round(top.score * 100)}<small>/ 100　相性スコア</small></div>
       ${resultName(top.g, "h2")}<p>${escapeHtml(explain(top.g))}</p>
       ${resultWarnings(top.g).length ? `<p class="result-caution">気になる点：${escapeHtml(resultWarnings(top.g).join("・"))}</p>` : ""}
       <div class="match-tags">${resultTags(top)}</div>
+      ${shopLinks(top.g)}
       <button class="share-btn" id="shareResultButton">結果をシェアする ↗</button><button class="share-x" id="shareXButton">Xでシェア ↗</button>
       <p id="shareStatus" class="share-status" role="status"></p>
       <input id="shareUrl" class="hide" aria-label="診断結果の共有用URL" readonly>
-    </div>
-    <h2 class="section-title">おすすめTOP${ranked.length}</h2>
-    ${ranked.map((x, i) => `<article class="card result-card"><div class="rank-mini">0${i + 1}</div><div>
+    </div>`;
+  $("#result-details").innerHTML = `
+    <h2 class="section-title">ほかのおすすめ</h2>
+    ${ranked.slice(1).map((x, i) => `<article class="card result-card"><div class="rank-mini">0${i + 2}</div><div>
       ${resultName(x.g, "h3")}<p>あなたに合いそうな理由：<b>${escapeHtml(explain(x.g))}</b></p>
       ${resultWarnings(x.g).length ? `<p class="result-caution">気になる点：${escapeHtml(resultWarnings(x.g).join("・"))}</p>` : ""}
       <div class="bars">${resultTags(x)}</div>
+      ${shopLinks(x.g, true)}
     </div></article>`).join("")}
     <section class="answer-summary" aria-label="診断に使った回答"><h2 class="section-title">回答を変えて試す</h2>
       <div class="answer-row"><div><b>苦手だったゲーム</b><p>${escapeHtml(names(bad))}</p></div><button class="secondary" id="editBad">変更</button></div>
@@ -310,5 +370,11 @@ function showResult(ranked) {
   injectAd();
   scrollTo({ top: 0, behavior: "smooth" });
   $("#result h2").focus({ preventScroll: true });
+}
+const homeAffiliateNotice = $("#homeAffiliateNotice");
+const homeDisclosure = affiliateDisclosure();
+if (homeAffiliateNotice && homeDisclosure) {
+  homeAffiliateNotice.textContent = homeDisclosure;
+  homeAffiliateNotice.classList.remove("hide");
 }
 loadSharedDiagnosis();

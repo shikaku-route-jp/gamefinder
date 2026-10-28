@@ -37,7 +37,7 @@ function createApp() {
   const context = vm.createContext({
     document: { querySelector: get, createElement: tag => new Element(tag), querySelectorAll: () => [] },
     location: { search: "", origin: "https://example.test", pathname: "/" },
-    URLSearchParams,
+    URL, URLSearchParams,
     alert: message => alerts.push(message),
   });
   for (const script of scripts) {
@@ -149,7 +149,8 @@ test("empty and unmatched searches return no games; placeholder exclusion remain
   assert.equal(app.run("realGames().length"), 1000);
   assert.deepEqual(app.results("ゲーム候補"), []);
   app.rendered("");
-  assert.ok(app.get("#bad").innerHTML.includes("ゲーム名を入力"));
+  assert.ok(app.get("#bad").textContent.includes("ゲーム名を入力"));
+  assert.ok(app.buttons("#bad").length > 0, "popular games are available before searching");
   app.rendered("存在しないタイトルxyz987654");
   assert.ok(app.get("#good").innerHTML.includes("見つかりませんでした"));
 });
@@ -205,6 +206,20 @@ test("selection retains the five-game limit and allows deselection", () => {
   assert.equal(app.alerts.length, 1);
   app.buttons("#bad").find(b => b.dataset.gameId === ids[0]).onclick();
   assert.equal(app.run("bad.length"), 4);
+});
+
+test("popular games can be selected without typing and stay unavailable in the opposite list", () => {
+  const app = createApp();
+  const [badIds, goodIds] = app.rendered("");
+  assert.deepEqual(badIds, goodIds);
+  assert.ok(badIds.includes(122), "Nioh is one of the browse choices");
+  app.buttons("#bad").find(button => button.dataset.gameId === "122").onclick();
+  assert.deepEqual(app.data("bad"), [122]);
+  assert.equal(app.buttons("#good").find(button => button.dataset.gameId === "122").disabled, true);
+  app.get("#badSearch").value = "エルデンリング";
+  app.run("renderBad()");
+  assert.equal(app.buttons("#bad")[0].dataset.gameId, "109");
+  assert.ok(app.get("#badSel").textContent.includes("仁王"));
 });
 
 test("diagnosis sees Stellar Blade and excludes selected games without altering scoring", () => {

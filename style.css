@@ -85,10 +85,10 @@ h2[tabindex="-1"]:focus{outline:none}
   position: static;
   float: none;
   width: 100%;
-  max-width: 100%;
+  max-width: 360px;
   min-width: 0;
   min-height: 0;
-  margin: 32px 0;
+  margin: 32px auto;
   padding: 16px 0;
   gap: 8px;
 }
